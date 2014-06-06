@@ -850,12 +850,12 @@ angular.module('mgcrea.ngStrap.datepicker', [
           var parsedDate = dateParser.parse(viewValue, controller.$dateValue);
           if (!parsedDate || isNaN(parsedDate.getTime())) {
             controller.$setValidity('date', false);
-            return;
+            controller.$dateValue = parsedDate;
           } else {
             var isValid = (isNaN(datepicker.$options.minDate) || parsedDate.getTime() >= datepicker.$options.minDate) && (isNaN(datepicker.$options.maxDate) || parsedDate.getTime() <= datepicker.$options.maxDate);
             controller.$setValidity('date', isValid);
             // Only update the model when we have a valid date
-            if (isValid)
+            // if (isValid)
               controller.$dateValue = parsedDate;
           }
           if (options.dateType === 'string') {
@@ -876,8 +876,12 @@ angular.module('mgcrea.ngStrap.datepicker', [
             date = NaN;
           } else if (angular.isDate(modelValue)) {
             date = modelValue;
-          } else if (options.dateType === 'string') {
+          // added check if string returns value
+          } else if (options.dateType === 'string' && dateParser.parse(modelValue)) {
             date = dateParser.parse(modelValue);
+              // added string directly in field
+          } else if (options.dateType === 'string') {
+            date = modelValue;
           } else {
             date = new Date(modelValue);
           }
@@ -892,7 +896,14 @@ angular.module('mgcrea.ngStrap.datepicker', [
         // viewValue -> element
         controller.$render = function () {
           // console.warn('$render("%s"): viewValue=%o', element.attr('ng-model'), controller.$viewValue);
-          element.val(!controller.$dateValue || isNaN(controller.$dateValue.getTime()) ? '' : dateFilter(controller.$dateValue, options.dateFormat));
+            if (controller.$dateValue.getTime) {
+                element.val(!controller.$dateValue || isNaN(controller.$dateValue.getTime()) ? controller.$dateValue : dateFilter(controller.$dateValue, options.dateFormat));
+            } else if (typeof controller.$dateValue == 'string' ) {
+                element.val(controller.$dateValue);
+            } else {
+                element.val('');
+            }
+          
         };
         // Garbage collection
         scope.$on('$destroy', function () {
@@ -1341,7 +1352,8 @@ angular.module('mgcrea.ngStrap.helpers.dateParser', []).provider('$dateParser', 
             var matches = regex.exec(value);
             if (!matches)
               return false;
-            var date = baseDate || new Date(0, 0, 1);
+              //added isDate check
+            var date = angular.isDate(baseDate) ? baseDate : new Date(0, 0, 1);
             for (var i = 0; i < matches.length - 1; i++) {
               setMap[i] && setMap[i].call(date, matches[i + 1]);
             }
